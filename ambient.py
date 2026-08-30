@@ -1,0 +1,126 @@
+import cv2
+import numpy as np
+from math import sqrt, floor
+import numpy.typing
+
+
+def from_file(path):
+    return cv2.imread(path)
+
+
+def preview(image, preview_height=400):
+    height, width, _ = image.shape
+    image = cv2.resize(image, (round(width * (preview_height / height)), preview_height), interpolation=cv2.INTER_NEAREST)
+
+    cv2.imshow("Image", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+def preview_colours(image, colours, preview_size=20):
+    height, width, _ = image.shape
+    size = min(width, height) // preview_size
+
+    for index, colour in enumerate(colours):
+        cv2.rectangle(image, (index * size, 0), ((index + 1) * size, size), colour.tolist(), -1)
+
+    preview(image)
+
+
+def quantize_image(image, samples):
+    arr = np.array(image)
+    height, width, _ = arr.shape
+    pixels = arr.reshape(height*width, 3)
+    # slim selected colours down by getting rid of boring pixels
+    pixels = build_bgr_palette(pixels)
+
+    if len(pixels) < 1:
+        return []
+
+    iters = floor(sqrt(samples))
+    return split_colourspace(pixels, iters)
+    
+
+def split_colourspace(colours, depth):
+    # Calculate the max-min of each colour channel
+    channel_ranges = [
+        np.max(colours[:, 0]) - np.min(colours[:,0]),
+        np.max(colours[:, 1]) - np.min(colours[:,1]),
+        np.max(colours[:, 2]) - np.min(colours[:,2]),
+    ]
+    # Work out which channel has the highest variance (range)
+    varyest_channel = np.argmax(channel_ranges)
+    
+    sorted_channel = np.argsort(colours[:, varyest_channel])
+    centerpoint = len(sorted_channel) // 2
+
+    # Split the sorted channel values by the median (centerpoint)
+    #  And get the pixel values by the corresponding indexes
+    part1 = colours[sorted_channel[:centerpoint]]
+    part2 = colours[sorted_channel[centerpoint:]]
+
+    next_depth = depth - 1
+    if next_depth == 0:
+        return mean_colour(part1), mean_colour(part2)
+
+    return np.concatenate((split_colourspace(part1, next_depth), split_colourspace(part2, next_depth)))
+
+def mean_colour(pixels):
+    return np.mean(pixels, axis=0)
+
+def convert(*colours, flag):
+    if len(colours) < 1:
+        return []
+
+    # Treat colours as a set of pixels in an image
+    # Read ints as 8bit and then reshape (NColours, 3) to (1, NColours, 3)
+    colours = np.array(colours, dtype=np.uint8)[np.newaxis, :, :3]
+    colours = cv2.cvtColor(colours, flag)
+    # Get the list of colours back
+    colours = np.squeeze(colours)
+
+    return colours
+
+
+# Note: hsv in opencv is from 0-255, not as a %
+def build_bgr_palette(colours, min_value=50, min_saturation=80):
+    # OpenCV will open images as BGR because gr
+    # For most operations we dont care, but here we do, so reinterpret the colours
+    if len(colours) < 1:
+        return []
+
+
+    colours = convert(*colours, flag=cv2.COLOR_BGR2HSV)
+    
+    #
+    # Do the building
+    #
+
+    # Apply some min requirements for the colours we generate
+    value_mask = colours[:, 2] > min_value
+    # The mask has 2 dimensions, which I guess means we lose one dimension. Add it back
+    colours = colours[value_mask]
+
+    sat_mask = colours[:, 1] > min_saturation
+    colours = colours[sat_mask]
+   
+    # Sort by saturation
+    # -colours "flips" the number line, thus reversing the sort
+    value_order = np.argsort(-colours[:, 2]).flatten()
+    colours = colours[value_order]
+
+    if len(colours) < 1:
+        return []
+    
+    # Convert back to BGR
+    return convert(*colours, flag=cv2.COLOR_HSV2BGR)
+
+
+if __name__ == "__main__":
+    # preview(from_camera())
+
+    # img = from_camera()
+    img = from_file("samples/1.png")
+    colours = quantize_image(img, 16)
+    colours = build_bgr_palette(colours)
+
+    print(colours)
