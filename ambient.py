@@ -12,6 +12,12 @@ type Colours = np.ndarray[tuple[int, int], np.dtype[np.uint8]]
 def from_file(path: str) -> typing.Union[cv2t.MatLike | None]:
     """
     Read a file as an image
+
+    Args:
+        path: The file to open
+    
+    Returns:
+        The contents of the file as an OpenCV image
     """
     return cv2.imread(path, cv2.IMREAD_COLOR_BGR)
 
@@ -19,6 +25,10 @@ def from_file(path: str) -> typing.Union[cv2t.MatLike | None]:
 def preview(image: cv2.typing.MatLike, preview_height: int=400) -> None:
     """
     Display the given image using imshow
+
+    Args:
+        image: The image to display a preview for
+        preview_height: Scale the image to a consistent size using this height
     """
     height, width, _ = image.shape
     image = cv2.resize(image, (round(width * (preview_height / height)), preview_height), interpolation=cv2.INTER_NEAREST)
@@ -30,6 +40,11 @@ def preview(image: cv2.typing.MatLike, preview_height: int=400) -> None:
 def preview_colours(image: cv2.typing.MatLike, colours: Colours, preview_size: int = 20) -> None:
     """
     Draw a palette of colours over an image and display it on screen
+
+    Args:
+        image: The image to preview
+        colours: The colour swatches to draw over the image
+        preview_size: The size of the colour swatches (in px)
     """
     height, width, _ = image.shape
     size = min(width, height) // preview_size
@@ -42,6 +57,14 @@ def preview_colours(image: cv2.typing.MatLike, colours: Colours, preview_size: i
 
 def quantize_image(image: cv2.typing.MatLike, samples: int) -> Colours:
     """
+    MMCQ implementation to extract dominant colours from an image
+
+    Args:
+        image: An image to extract colours from
+        samples: The number of colours to extract - must be a power of 2
+
+    Returns:
+        The colours chosen from the image
     """
     arr = np.array(image, dtype=np.uint8)
     height, width, _ = arr.shape
@@ -57,6 +80,24 @@ def quantize_image(image: cv2.typing.MatLike, samples: int) -> Colours:
     
 
 def split_colourspace(colours: Colours, depth: int) -> Colours:
+    """
+    Recursive MMCQ algorithm:
+    1. Choose the colour channel with the highest range of values
+    2. Sort the colours by that channel
+    3. Split the colours into two groups at the median value
+    4. Repeat for both groups until number of desired samples is achieved
+    5. For each group, average the colours to get the final colour result
+
+    https://modern-colorthief.readthedocs.io/en/stable/mmcq.html
+
+    Args
+        colours: The group of colours to analyse and split
+        depth: The number of times to split the colourspace into two
+
+    Returns:
+        The result of the MMCQ algorithm - i.e. The averaged colour of each group
+    """
+
     # Calculate the max-min of each colour channel
     channel_ranges = [
         np.max(colours[:, 0]) - np.min(colours[:,0]),
@@ -81,11 +122,27 @@ def split_colourspace(colours: Colours, depth: int) -> Colours:
     return np.concatenate((split_colourspace(part1, next_depth), split_colourspace(part2, next_depth)))
 
 def mean_colour(colours: Colours) -> Colour:
+    """
+    Calculates the arithmatic mean of each colour channel to produce a single "average" colour.
+
+    Args:
+        colours: An array of colours to average
+
+    Returns:
+        The mean of the given colours
+    """
     return np.mean(colours, axis=0).astype(np.uint8)
 
 def convert(*colours: Colours, flag: cv2.ColorConversionCodes) -> Colours:
     """
     Convert colours between two colourspaces according to the given flag
+
+    Args:
+        *colours: The colours to convert
+        flag: An OpenCV ColorConversionCode denoting the which colourspaces to convert to/from
+
+    Returns:
+        An array of colours in the new colourspace
     """
     if len(colours) < 1:
         return np.array([])
@@ -101,9 +158,18 @@ def convert(*colours: Colours, flag: cv2.ColorConversionCodes) -> Colours:
 
     return new_colours
 
-
-# Note: hsv in opencv is from 0-255, not as a %
 def build_bgr_palette(colours: Colours, min_value: int = 50, min_saturation: int = 80) -> Colours:
+    """
+    Filter for vibrant colours based on the HSV channels
+    
+    Args:
+        colours: The colours to filter through
+        min_value: The minimum HSV value (from 0-255) of colours in the palette
+        min_saturation: The minimum HSV saturation (from 0-255) of colours in the palette
+
+    Returns:
+        The colours meeting the value & saturation criteria, sorted by saturation (high->low)
+    """
     # OpenCV will open images as BGR because gr
     # For most operations we dont care, but here we do, so reinterpret the colours
     if len(colours) < 1:

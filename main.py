@@ -12,6 +12,15 @@ UPDATE_DELAY = 1
 CAM_INDEX = 0
 
 def from_camera(index=0) -> cv2t.MatLike:
+    """
+    Pull a still image from a video capture device
+
+    Args:
+        index: The video capture device index - see cv2.VideoCapture
+
+    Returns:
+        A frame from the capture device
+    """
     dev = cv2.VideoCapture(index)
 
     if not dev.isOpened():
@@ -25,12 +34,15 @@ def from_camera(index=0) -> cv2t.MatLike:
     return frame
 
 def push_colour(colour: ambient.Colour) -> None:
+    """
+    Set HASS_ENTITY to the given colour
+
+    Args:
+        colour: The colour to send to HA
+    """
     r, g, b = colour.tolist()
 
     url = f"{HASS_ENDPOINT}/states/{HASS_ENTITY}"
-    print(url)
-    print(f"RGB {r} {g} {b}")
-    return
     result = requests.post(
         url, 
         headers={"Authorization": f"Bearer {HASS_TOKEN}"},
@@ -47,7 +59,13 @@ def push_colour(colour: ambient.Colour) -> None:
     result.raise_for_status()
 
 
-def screen_to_ha(index: int) -> None:
+def screen_to_ha(index: int = 0) -> None:
+    """
+    Main function to handle extracting a colour from the capture device and sending the colour to HA
+
+    Args:
+        index: The video capture device index
+    """
     img = from_camera(index)
     
     colours = ambient.quantize_image(img, SAMPLES)
