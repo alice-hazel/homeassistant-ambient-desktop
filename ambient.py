@@ -14,7 +14,7 @@ def from_file(path: str) -> typing.Union[cv2t.MatLike | None]:
     Read a file as an image
 
     Args:
-        path: The file to open
+        path: The file to open as a string
     
     Returns:
         The contents of the file as an OpenCV image
@@ -24,11 +24,12 @@ def from_file(path: str) -> typing.Union[cv2t.MatLike | None]:
 
 def preview(image: cv2.typing.MatLike, preview_height: int=400) -> None:
     """
-    Display the given image using imshow
+    Display the given image using OpenCV's imshow. 
+    The image will be resized to fit the given preview_height for consistency when viewing differently sized images.
 
     Args:
-        image: The image to display a preview for
-        preview_height: Scale the image to a consistent size using this height
+        image: The OpenCV MatLike image to display
+        preview_height: The height in px to scale the image to
     """
     height, width, _ = image.shape
     image = cv2.resize(image, (round(width * (preview_height / height)), preview_height), interpolation=cv2.INTER_NEAREST)
@@ -39,12 +40,12 @@ def preview(image: cv2.typing.MatLike, preview_height: int=400) -> None:
 
 def preview_colours(image: cv2.typing.MatLike, colours: Colours, preview_size: int = 20) -> None:
     """
-    Draw a palette of colours over an image and display it on screen
+    Draw a palette of colours over an image and preview it on screen
 
     Args:
-        image: The image to preview
-        colours: The colour swatches to draw over the image
-        preview_size: The size of the colour swatches (in px)
+        image: The OpenCV MatLike image to preview
+        colours: An array of (B,G,R) colours to draw over the image
+        preview_size: The size in px of the colour swatches to be overlaid
     """
     height, width, _ = image.shape
     size = min(width, height) // preview_size
@@ -60,11 +61,11 @@ def quantize_image(image: cv2.typing.MatLike, samples: int) -> Colours:
     MMCQ implementation to extract dominant colours from an image
 
     Args:
-        image: An image to extract colours from
+        image: An OpenCV MatLike image to extract colours from
         samples: The number of colours to extract - must be a power of 2
 
     Returns:
-        The colours chosen from the image
+        An array of colours (B,G,R) chosen from the image
     """
     arr = np.array(image, dtype=np.uint8)
     height, width, _ = arr.shape
@@ -91,11 +92,11 @@ def split_colourspace(colours: Colours, depth: int) -> Colours:
     https://modern-colorthief.readthedocs.io/en/stable/mmcq.html
 
     Args
-        colours: The group of colours to analyse and split
+        colours: The array of colours to divide up
         depth: The number of times to split the colourspace into two
 
     Returns:
-        The result of the MMCQ algorithm - i.e. The averaged colour of each group
+        The result of the MMCQ algorithm - i.e. The averaged colour (BGR) of each group
     """
 
     # Calculate the max-min of each colour channel
@@ -129,7 +130,7 @@ def mean_colour(colours: Colours) -> Colour:
         colours: An array of colours to average
 
     Returns:
-        The mean of the given colours
+        The mean of the given colours in the same colour space as the input
     """
     return np.mean(colours, axis=0).astype(np.uint8)
 
@@ -163,12 +164,12 @@ def build_bgr_palette(colours: Colours, min_value: int = 50, min_saturation: int
     Filter for vibrant colours based on the HSV channels
     
     Args:
-        colours: The colours to filter through
+        colours: The colours in (B,G,R) to filter through
         min_value: The minimum HSV value (from 0-255) of colours in the palette
         min_saturation: The minimum HSV saturation (from 0-255) of colours in the palette
 
     Returns:
-        The colours meeting the value & saturation criteria, sorted by saturation (high->low)
+        The colours in (B,G,R) meeting the value & saturation criteria, sorted by saturation (high->low)
     """
     # OpenCV will open images as BGR because gr
     # For most operations we dont care, but here we do, so reinterpret the colours

@@ -16,7 +16,7 @@ def from_camera(index=0) -> cv2t.MatLike:
     Pull a still image from a video capture device
 
     Args:
-        index: The video capture device index - see cv2.VideoCapture
+        index: The video capture device index - see OpenCV's VideoCapture method
 
     Returns:
         A frame from the capture device
@@ -35,10 +35,14 @@ def from_camera(index=0) -> cv2t.MatLike:
 
 def push_colour(colour: ambient.Colour) -> None:
     """
-    Set HASS_ENTITY to the given colour
+    Set the Home Assistant entity to a specific colour
+
+    The state of the entity will be set to a space separated string of the RGB values - e.g. `"255 100 0"`.
+
+    The entity will receive attributes for each colour channel set to the corresponding values - e.g. `{"r": 255, "g": 100, "b": 0}`.
 
     Args:
-        colour: The colour to send to HA
+        colour: An (R,G,B) colour to send to Home Assistant
     """
     r, g, b = colour.tolist()
 
@@ -64,7 +68,7 @@ def screen_to_ha(index: int = 0) -> None:
     Main function to handle extracting a colour from the capture device and sending the colour to HA
 
     Args:
-        index: The video capture device index
+        index: The video capture device index - see OpenCV's VideoCapture method
     """
     img = from_camera(index)
     
