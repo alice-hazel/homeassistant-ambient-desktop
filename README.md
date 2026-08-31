@@ -14,14 +14,12 @@ This project also serves as a learning exercise for using NumPy and performing m
 1. Create a "Long-lived access token" in Home Assistant (User profile -> Security -> Long-lived access tokens -> Create token)
 2. Create a `.env` file using the contents of `.env.example` as a template
 3. Install the requirements: `python3 -m pip install -r requirements.txt`
-
-## Running
-1. Launch OBS, add your desktop as a video source, and start the virtual camera
-2. Run the script with `python3 main.py`
-3. Create an automation in Home Assistant using the `light.turn_on` tied to the value of the sensor entity (`sensor.ambient_light` by default).
+4. Create an automation in Home Assistant using the `light.turn_on` tied to the value of the sensor entity (`sensor.ambient_light` by default).
 
 
-### Example Home Assistant Automation
+<details>
+<summary>Example Home Assistant Automation</summary>
+
 ```yaml
 triggers:
   - trigger: state
@@ -39,6 +37,12 @@ actions:
         ] }}
       transition: 0.5
 ```
+
+</details>
+
+## Running
+1. Launch OBS, add your desktop as a video source, and start the virtual camera
+2. Run the script with `python3 main.py`
 
 
 # Credits
