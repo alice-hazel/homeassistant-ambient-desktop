@@ -1,7 +1,7 @@
 import cv2
 import cv2.typing as cv2t
-from image_utils import Colour, convert, hsv_filter
-import mmcq
+from image_utils import Colour, convert
+from processor import MMCQ_Filter, hsv_filter
 import requests
 from time import sleep
 from dotenv import load_dotenv
@@ -64,36 +64,27 @@ def push_colour(colour: Colour) -> None:
     result.raise_for_status()
 
 
-def screen_to_ha(index: int = 0) -> None:
+def boost_colours(colours: Colours) -> Colours:
     """
-    Main function to handle extracting a colour from the capture device and sending the colour to HA
+    Boosts the saturation and value channels
 
     Args:
-        index: The video capture device index - see OpenCV's VideoCapture method
-    """
-    img = from_camera(index)
+        colours: The (B, G, R) colours to boost
     
-    colours = mmcq.quantize_image(img, SAMPLES)
-    colours = hsv_filter(colours)
-
-    if len(colours) < 1:
-        print("No colours found")
-        return
+    Returns:
+        A new array with the modified colours (B, G, R)
+    """
 
     hsv_colours = convert(colours[0], flag=cv2.COLOR_BGR2HSV)
     hsv_colour = hsv_colours[0]
 
     hsv_colour = np.array(
-        # boost saturation and value for prettiness
         (hsv_colour.item(0), 255, 255), 
         dtype=np.uint8
     )
 
-    colours = convert(hsv_colour, flag=cv2.COLOR_HSV2RGB)
-    # There is only one colour, but .convert returns a list of colours
-    colour = colours[0]
-
-    push_colour(colour)
+    colours = convert(hsv_colour, flag=cv2.COLOR_HSV2BGR)
+    return colours
 
 if __name__ == "__main__":
     load_dotenv()
@@ -101,6 +92,22 @@ if __name__ == "__main__":
     HASS_ENTITY = getenv("HASS_ENTITY")
     HASS_ENDPOINT = getenv("HASS_ENDPOINT")
 
+    mmcq_filter = MMCQ_Filter()
+    mmcq_filter.preprocess_colours = hsv_filter
+
     while True:
-        screen_to_ha(CAM_INDEX)
+        img = from_camera(CAM_INDEX)
+
+        colours = mmcq_filter.process_image(img, SAMPLES)
+        if len(colours) < 1:
+            print("No colours found")
+            exit()
+
+        colour = colours[0]
+        colours = boost_colours(np.array([colour], np.uint8))
+        colours = convert(*colours, flag=cv2.COLOR_BGR2RGB)
+        rgb_colour = colours[0]
+
+        push_colour(rgb_colour)
+
         sleep(UPDATE_DELAY)
