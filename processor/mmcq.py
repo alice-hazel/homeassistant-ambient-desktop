@@ -1,12 +1,18 @@
+from .processor import Processor
 import numpy as np
 import cv2
 import cv2.typing
 from image_utils import Colour, Colours, mean_colour, from_file
 from math import floor, sqrt
-from .processor import Processor
+from typing import override
 
 class MMCQ_Filter(Processor):
+    @override
     def extract_colours(self, colours: Colours, samples: int) -> Colours:
+        """
+        Returns:
+            The result of the MMCQ algorithm - i.e. The averaged colour (BGR) of each group
+        """
         iters = floor(sqrt(samples))
 
         return self._split_colourspace(colours, iters)
@@ -23,7 +29,7 @@ class MMCQ_Filter(Processor):
 
         https://modern-colorthief.readthedocs.io/en/stable/mmcq.html
 
-        Args
+        Args:
             colours: The array of colours to divide up
             depth: The number of times to split the colourspace into two
 

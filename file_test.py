@@ -3,10 +3,6 @@ from processor import MMCQ_Filter, hsv_filter
 from image_utils import from_file
 
 if __name__ == "__main__":
-
-    # preview(from_camera())
-
-    # img = from_camera()
     img = from_file("samples/1.png")
     if img is None:
         exit()

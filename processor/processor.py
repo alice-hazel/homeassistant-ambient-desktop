@@ -39,7 +39,6 @@ class Processor:
         """
         return colours
 
-
     def extract_colours(self, colours: Colours, samples: int) -> Colours:
         """
         Process a series of colours to extract dominant colours
