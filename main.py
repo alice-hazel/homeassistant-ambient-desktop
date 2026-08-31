@@ -1,6 +1,7 @@
 import cv2
 import cv2.typing as cv2t
-import ambient
+from image_utils import Colour, convert, hsv_filter
+import mmcq
 import requests
 from time import sleep
 from dotenv import load_dotenv
@@ -33,7 +34,7 @@ def from_camera(index=0) -> cv2t.MatLike:
 
     return frame
 
-def push_colour(colour: ambient.Colour) -> None:
+def push_colour(colour: Colour) -> None:
     """
     Set the Home Assistant entity to a specific colour
 
@@ -72,14 +73,14 @@ def screen_to_ha(index: int = 0) -> None:
     """
     img = from_camera(index)
     
-    colours = ambient.quantize_image(img, SAMPLES)
-    colours = ambient.build_bgr_palette(colours)
+    colours = mmcq.quantize_image(img, SAMPLES)
+    colours = hsv_filter(colours)
 
     if len(colours) < 1:
         print("No colours found")
         return
 
-    hsv_colours = ambient.convert(colours[0], flag=cv2.COLOR_BGR2HSV)
+    hsv_colours = convert(colours[0], flag=cv2.COLOR_BGR2HSV)
     hsv_colour = hsv_colours[0]
 
     hsv_colour = np.array(
@@ -88,7 +89,7 @@ def screen_to_ha(index: int = 0) -> None:
         dtype=np.uint8
     )
 
-    colours = ambient.convert(hsv_colour, flag=cv2.COLOR_HSV2RGB)
+    colours = convert(hsv_colour, flag=cv2.COLOR_HSV2RGB)
     # There is only one colour, but .convert returns a list of colours
     colour = colours[0]
 
