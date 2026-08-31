@@ -51,25 +51,30 @@ if __name__ == "__main__":
     mmcq_filter = MMCQ_Filter()
     mmcq_filter.preprocess_colours = hsv_filter
 
-    while True:
-        ret, img = dev.read()
-        if not ret:
-            print("Unable to obtain frame from video capture device")
-            exit(1)
+    try:
+        while True:
+            ret, img = dev.read()
+            if not ret:
+                print("Unable to obtain frame from video capture device")
+                exit(1)
 
-        colours = mmcq_filter.process_image(img, SAMPLES)
-        
-        if len(colours) < 1:
-            print("No colours found")
+            colours = mmcq_filter.process_image(img, SAMPLES)
+            
+            if len(colours) < 1:
+                print("No colours found")
+                sleep(UPDATE_DELAY)
+                continue
+
+            colours = hsv_filter(colours)
+            colour = colours[0]
+            colours = boost_colours(np.array([colour], np.uint8))
+            colours = convert(*colours, flag=cv2.COLOR_BGR2RGB)
+            rgb_colour = colours[0]
+
+            push_colour(rgb_colour, HASS_ENDPOINT, HASS_ENTITY, HASS_TOKEN)
+
             sleep(UPDATE_DELAY)
-            continue
+        
 
-        colours = hsv_filter(colours)
-        colour = colours[0]
-        colours = boost_colours(np.array([colour], np.uint8))
-        colours = convert(*colours, flag=cv2.COLOR_BGR2RGB)
-        rgb_colour = colours[0]
-
-        push_colour(rgb_colour, HASS_ENDPOINT, HASS_ENTITY, HASS_TOKEN)
-
-        sleep(UPDATE_DELAY)
+    finally:
+        dev.release()
