@@ -24,6 +24,9 @@ class Processor:
         colours = self.mat_to_colours(image)
     
         colours = self.preprocess_colours(colours)
+        # Don't process an image where all the colours are filtered out
+        if len(colours) < 1:
+            return np.array([], np.uint8)
 
         return self.extract_colours(colours, samples)
 
