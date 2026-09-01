@@ -35,17 +35,29 @@ def boost_colours(colours: Colours) -> Colours:
     colours = convert(hsv_colour, flag=cv2.COLOR_HSV2BGR)
     return colours
 
+def launch_obs() -> None:
+    from subprocess import Popen, DEVNULL
+
+    # TODO: OS handling?
+    return Popen(["/usr/bin/obs", "--startvirtualcam", "--minimize-to-tray"], stdout=DEVNULL, stdin=DEVNULL)
+
 if __name__ == "__main__":
     load_dotenv()
     HASS_TOKEN = getenv("HASS_TOKEN")
     HASS_ENTITY = getenv("HASS_ENTITY")
     HASS_ENDPOINT = getenv("HASS_ENDPOINT")
 
-    # Try to open the video capture device
-    dev = cv2.VideoCapture(CAM_INDEX)
-    if not dev.isOpened():
-        print(f"Unable to open video capture device (with index {CAM_INDEX})")
-        exit(1)
+    obs_instance = launch_obs()
+
+    while 1:
+        # Try to open the video capture device
+        camera = cv2.VideoCapture(CAM_INDEX)
+        if camera.isOpened():
+            print("Camera found!")
+            break
+        else:
+            print(f"Waiting for camera to become available...")
+            sleep(2)
 
     # Set up the filter pipeline
     mmcq_filter = MMCQ_Filter()
@@ -53,10 +65,11 @@ if __name__ == "__main__":
 
     try:
         while True:
-            ret, img = dev.read()
+            ret, img = camera.read()
             if not ret:
-                print("Unable to obtain frame from video capture device")
-                exit(1)
+                print("Unable to obtain frame from video capture device...")
+                sleep(UPDATE_DELAY)
+                continue
 
             colours = mmcq_filter.process_image(img, SAMPLES)
             
@@ -77,4 +90,5 @@ if __name__ == "__main__":
         
 
     finally:
-        dev.release()
+        camera.release()
+        obs_instance.terminate()

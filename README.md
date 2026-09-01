@@ -15,6 +15,7 @@ This project also serves as a learning exercise for using NumPy and performing m
 2. Create a `.env` file using the contents of `.env.example` as a template
 3. Install the requirements: `python3 -m pip install -r requirements.txt`
 4. Create an automation in Home Assistant using the `light.turn_on` tied to the value of the sensor entity (`sensor.ambient_light` by default).
+5. Launch OBS and add a capture of your desktop as the video source
 
 
 <details>
@@ -41,9 +42,11 @@ actions:
 </details>
 
 ## Running
-1. Launch OBS, add your desktop as a video source, and start the virtual camera
-2. Run the script with `python3 main.py`
+```
+python3 main.py
+```
 
+This will launch OBS (`/usr/bin/obs`) in the background and start sending colour values to HA automatically. 
 
 # Credits
 - Heavy inspiration taken from https://github.com/LeonBurghardtDev/AmbientLightToHA
